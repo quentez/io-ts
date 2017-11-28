@@ -1,9 +1,9 @@
 import { isRight } from 'fp-ts/lib/Either'
 import * as assert from 'assert'
-import * as t from '../src/index'
-import { assertSuccess, assertFailure, assertStrictEqual, assertDeepEqual, DateFromNumber } from './helpers'
+import * as t from '../../../src/index'
+import { assertSuccess, assertFailure, assertStrictEqual, assertDeepEqual, DateFromNumber } from '../../helpers'
 
-describe('intersection', () => {
+describe('intersection (sync/all)', () => {
   it('should succeed validating a valid value', () => {
     const T = t.intersection([t.interface({ a: t.number }), t.interface({ b: t.number })])
     assertSuccess(t.validate({ a: 1, b: 2 }, T))
@@ -19,7 +19,7 @@ describe('intersection', () => {
     }
   })
 
-  it('should return the same reference if validation succeeded and nothing changed', () => {
+  it.skip('should return the same reference if validation succeeded and nothing changed', () => {
     const T = t.intersection([t.interface({ a: t.number }), t.interface({ b: t.number })])
     const value = { a: 1, b: 2 }
     assertStrictEqual(t.validate(value, T), value)

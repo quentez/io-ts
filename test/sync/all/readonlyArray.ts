@@ -1,8 +1,8 @@
 import * as assert from 'assert'
-import * as t from '../src/index'
-import { assertSuccess, assertFailure, DateFromNumber } from './helpers'
+import * as t from '../../../src/index'
+import { assertSuccess, assertFailure, DateFromNumber } from '../../helpers'
 
-describe('readonlyArray', () => {
+describe('readonlyArray (sync/all)', () => {
   it('should succeed validating a valid value', () => {
     const T = t.readonlyArray(t.number)
     assertSuccess(t.validate([1], T))

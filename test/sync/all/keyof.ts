@@ -1,8 +1,8 @@
 import * as assert from 'assert'
-import * as t from '../src/index'
-import { assertSuccess, assertFailure } from './helpers'
+import * as t from '../../../src/index'
+import { assertSuccess, assertFailure } from '../../helpers'
 
-describe('keyof', () => {
+describe('keyof (sync/all)', () => {
   it('should succeed validating a valid value', () => {
     const T = t.keyof({ a: 1, b: 2 })
     assertSuccess(t.validate('a', T))

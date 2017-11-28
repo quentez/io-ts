@@ -1,8 +1,8 @@
 import * as assert from 'assert'
-import * as t from '../src/index'
-import { assertSuccess, assertFailure, assertStrictEqual, DateFromNumber } from './helpers'
+import * as t from '../../../src/index'
+import { assertSuccess, assertFailure, assertStrictEqual, DateFromNumber } from '../../helpers'
 
-describe('union', () => {
+describe('union (sync/all)', () => {
   it('should succeed validating a valid value', () => {
     const T = t.union([t.string, t.number])
     assertSuccess(t.validate('s', T))

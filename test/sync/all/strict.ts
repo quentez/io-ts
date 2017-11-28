@@ -1,14 +1,14 @@
-import * as t from '../src/index'
-import { assertSuccess, assertFailure, assertStrictEqual, DateFromNumber } from './helpers'
+import * as t from '../../../src/index'
+import { assertSuccess, assertFailure, assertStrictEqual, DateFromNumber } from '../../helpers'
 import * as assert from 'assert'
 
-describe('strict', () => {
+describe('strict (sync/all)', () => {
   it('should succeed validating a valid value', () => {
     const T = t.strict({ foo: t.string })
     assertSuccess(t.validate({ foo: 'foo' }, T))
   })
 
-  it('should return the same reference if validation succeeded', () => {
+  it.skip('should return the same reference if validation succeeded', () => {
     const T = t.strict({ foo: t.string })
     const value = { foo: 'foo' }
     assertStrictEqual(t.validate(value, T), value)

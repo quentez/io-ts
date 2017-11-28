@@ -156,7 +156,7 @@ type TS1 = TypeOf<typeof S1>
 const x32: TS1 = { name: 'Giulio' }
 const x33input = { name: 'foo', foo: 'foo' }
 const x33: TS1 = x33input
-// $ExpectError Argument of type 'StringType' is not assignable to parameter of type 'Props'
+// $ExpectError Index signature is missing in type 'StringType<"Either">'
 const S2 = t.strict(t.string)
 
 //

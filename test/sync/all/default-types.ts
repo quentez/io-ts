@@ -1,7 +1,7 @@
-import * as t from '../src/index'
-import { assertSuccess, assertFailure } from './helpers'
+import * as t from '../../../src/index'
+import { assertSuccess, assertFailure } from '../../helpers'
 
-describe('Dictionary', () => {
+describe('Dictionary (sync/all)', () => {
   it('should accept arrays', () => {
     assertSuccess(t.validate([], t.Dictionary))
   })
@@ -24,7 +24,7 @@ describe('Dictionary', () => {
   })
 })
 
-describe('Integer', () => {
+describe('Integer (sync/all)', () => {
   it('should validate integers', () => {
     assertSuccess(t.validate(1, t.Integer))
     assertFailure(t.validate(0.5, t.Integer), ['Invalid value 0.5 supplied to : Integer'])
@@ -32,14 +32,14 @@ describe('Integer', () => {
   })
 })
 
-describe('null', () => {
+describe('null (sync/all)', () => {
   it('should support the alias `nullType`', () => {
     assertSuccess(t.validate(null, t.null))
     assertFailure(t.validate(1, t.null), ['Invalid value 1 supplied to : null'])
   })
 })
 
-describe('object', () => {
+describe('object (sync/all)', () => {
   it('should accept arrays', () => {
     assertSuccess(t.validate([], t.object))
   })
@@ -62,7 +62,7 @@ describe('object', () => {
   })
 })
 
-describe('Function', () => {
+describe('Function (sync/all)', () => {
   it('should accept functions', () => {
     assertSuccess(t.validate(t.identity, t.Function))
   })

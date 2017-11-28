@@ -1,15 +1,15 @@
 import * as assert from 'assert'
-import * as t from '../src/index'
-import { assertSuccess, assertFailure, assertStrictEqual, DateFromNumber } from './helpers'
+import * as t from '../../../src/index'
+import { assertSuccess, assertFailure, assertStrictEqual, DateFromNumber } from '../../helpers'
 
-describe('partial', () => {
+describe('partial (sync/all)', () => {
   it('should succeed validating a valid value', () => {
     const T = t.partial({ a: t.number })
     assertSuccess(t.validate({}, T))
     assertSuccess(t.validate({ a: 1 }, T))
   })
 
-  it('should not add optional keys', () => {
+  it.skip('should not add optional keys', () => {
     const T = t.partial({ a: t.number })
     assert.strictEqual(
       t
@@ -27,7 +27,7 @@ describe('partial', () => {
     )
   })
 
-  it('should return the same reference if validation succeeded', () => {
+  it.skip('should return the same reference if validation succeeded', () => {
     const T = t.partial({ a: t.number })
     const value = {}
     assertStrictEqual(t.validate(value, T), value)

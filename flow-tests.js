@@ -1,7 +1,6 @@
 // @flow
 
 import * as t from '.'
-import { PathReporter } from './lib/PathReporter'
 
 //
 // Either
@@ -192,8 +191,6 @@ const s2: S1T = { a: 1, b: 2 }
 //
 const validation = t.validate(1, t.number)
 const result: string = validation.fold(() => 'error', () => 'ok')
-const report = PathReporter.report(validation)
-;(report: Array<string>)
 
 function optional<A, RT: t.Type<any, A>>(type: RT, name?: string): t.UnionType<[RT, t.UndefinedType], A | void> {
   return t.union([type, t.undefined], name)

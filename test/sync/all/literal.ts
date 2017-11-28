@@ -1,8 +1,8 @@
 import * as assert from 'assert'
-import * as t from '../src/index'
-import { assertSuccess, assertFailure } from './helpers'
+import * as t from '../../../src/index'
+import { assertSuccess, assertFailure } from '../../helpers'
 
-describe('literal', () => {
+describe('literal (sync/all)', () => {
   it('should succeed validating a valid value', () => {
     const T = t.literal('a')
     assertSuccess(t.validate('a', T))

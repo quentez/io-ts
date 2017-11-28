@@ -1,8 +1,15 @@
 import * as assert from 'assert'
-import * as t from '../src/index'
-import { assertSuccess, assertFailure, assertStrictEqual, assertDeepEqual, string2, DateFromNumber } from './helpers'
+import * as t from '../../../src/index'
+import {
+  assertSuccess,
+  assertFailure,
+  assertStrictEqual,
+  assertDeepEqual,
+  string2,
+  DateFromNumber
+} from '../../helpers'
 
-describe('dictionary', () => {
+describe('dictionary (sync/all)', () => {
   it('should succeed validating a valid value', () => {
     const T1 = t.dictionary(t.string, t.number)
     assertSuccess(t.validate({}, T1))
@@ -15,7 +22,7 @@ describe('dictionary', () => {
     assertSuccess(t.validate({ aa: 1 }, T3))
   })
 
-  it('should return the same reference if validation succeeded if nothing changed', () => {
+  it.skip('should return the same reference if validation succeeded if nothing changed', () => {
     const T1 = t.dictionary(t.string, t.number)
     const value1 = { aa: 1 }
     assertStrictEqual(t.validate(value1, T1), value1)

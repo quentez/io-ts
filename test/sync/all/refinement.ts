@@ -1,8 +1,8 @@
 import * as assert from 'assert'
-import * as t from '../src/index'
-import { assertSuccess, assertFailure, assertStrictEqual, DateFromNumber, IntegerFromString } from './helpers'
+import * as t from '../../../src/index'
+import { assertSuccess, assertFailure, assertStrictEqual, DateFromNumber, IntegerFromString } from '../../helpers'
 
-describe('refinement', () => {
+describe('refinement (sync/all)', () => {
   it('should succeed validating a valid value', () => {
     const T = t.refinement(t.number, n => n >= 0)
     assertSuccess(t.validate(0, T))

@@ -1,8 +1,8 @@
 import * as assert from 'assert'
-import * as t from '../src/index'
-import { assertSuccess, assertFailure, DateFromNumber } from './helpers'
+import * as t from '../../../src/index'
+import { assertSuccess, assertFailure, DateFromNumber } from '../../helpers'
 
-describe('readonly', () => {
+describe('readonly (sync/all)', () => {
   it('should succeed validating a valid value', () => {
     const T = t.readonly(t.interface({ a: t.number }))
     assertSuccess(t.validate({ a: 1 }, T))

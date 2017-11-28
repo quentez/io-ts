@@ -9,7 +9,7 @@
     "lint": "tslint src/**/*.ts test/**/*.ts",
     "typings-checker":
       "typings-checker --allow-expect-error --project typings-checker/tsconfig.json typings-checker/index.ts",
-    "mocha": "mocha -r ts-node/register test/*.ts",
+    "mocha": "mocha -r ts-node/register test/**/**/*.ts",
     "prettier":
       "prettier --no-semi --single-quote --print-width 120 --parser typescript --list-different \"{src,test}/**/*.ts\"",
     "fix-prettier":
@@ -38,6 +38,7 @@
   "devDependencies": {
     "@types/mocha": "2.2.38",
     "@types/node": "7.0.4",
+    "funfix": "^6.2.2",
     "mocha": "3.2.0",
     "prettier": "1.8.2",
     "ts-node": "3.2.0",
