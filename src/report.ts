@@ -1,4 +1,4 @@
-import { Context, getFunctionName, ValidationError } from './core'
+import { Context, getFunctionName, ValidationError, contextToArray } from './core'
 import { Either } from 'fp-ts/lib/Either'
 
 const stringify = (v: any): string => {
@@ -6,7 +6,9 @@ const stringify = (v: any): string => {
 }
 
 const getContextPath = (context: Context): string => {
-  return context.map(({ key, type }) => `${key}: ${type.name}`).join('/')
+  return contextToArray(context)
+    .map(({ key, type }) => `${key}: ${type.name}`)
+    .join('/')
 }
 
 const getMessage = (v: any, context: Context): string => {

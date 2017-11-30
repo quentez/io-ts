@@ -9,16 +9,30 @@ export interface ContextEntry {
 
 export type Context = Array<ContextEntry>
 
+export const createContext = (key: string, type: any): Context => {
+  return [{ key, type }]
+}
+
+export const appendContext = (c: Context, key: string, type: any): Context => {
+  return c.concat({ key, type })
+}
+
+export const contextToArray = (c: Context): Array<ContextEntry> => {
+  return c
+}
+
 export interface ValidationError {
   readonly value: any
   readonly context: Context
 }
 
+export type Errors = Array<ValidationError>
+
 export interface MonadThrow<E, M> extends Monad<M> {
   throwError: <A>(e: E) => HKT<M, A>
 }
 
-export interface MonadType<M> extends MonadThrow<Array<ValidationError>, M> {
+export interface MonadType<M> extends MonadThrow<Errors, M> {
   zipWith: <A, B, C>(f: (a: A, b: B) => C) => (fa: HKT<M, A>, lazyfb: () => HKT<M, B>) => HKT<M, C>
   attempt: <A>(fx: HKT<M, A>, lazyfy: () => HKT<M, A>) => HKT<M, A>
 }
@@ -368,7 +382,7 @@ export const getArray = <M>(M: MonadType<M>) => (anyArrayType: Type<M, any, Arra
         M.chain(xs => {
           let r = M.of<Array<any>>([])
           for (let i = 0; i < xs.length; i++) {
-            r = f(r, () => type.validate(xs[i], c.concat({ key: String(i), type })))
+            r = f(r, () => type.validate(xs[i], appendContext(c, String(i), type)))
           }
           return r
         }, anyArrayType.validate(s, c)),
@@ -419,7 +433,7 @@ export interface InterfaceCombinator<M> {
 export const getInterface = <M>(M: MonadType<M>) => (
   anyDictionaryType: Type<M, any, { [key: string]: any }>
 ): InterfaceCombinator<M> => {
-  const f = M.zipWith((a: { [key: string]: any }, b: { k: string; v: any }) => ({ ...a, [b.k]: b.v }))
+  const f = M.zipWith((a: { [key: string]: any }, b: [string, any]) => ({ ...a, [b[0]]: b[1] }))
   return (props, name = getNameFromProps(props)) =>
     new InterfaceType(
       name,
@@ -439,7 +453,7 @@ export const getInterface = <M>(M: MonadType<M>) => (
           let r: HKT<M, any> = M.of({ ...o })
           for (let k in props) {
             const type = props[k]
-            r = f(r, () => M.map(v => ({ k, v }), type.validate(o[k], c.concat({ key: k, type }))))
+            r = f(r, () => M.map(v => [k, v] as [string, any], type.validate(o[k], appendContext(c, k, type))))
           }
           return r
         }, anyDictionaryType.validate(s, c)),
@@ -491,10 +505,10 @@ export const getUnion = <M>(M: MonadType<M>): UnionCombinator<M> => {
       (s, c) => {
         if (types.length > 0) {
           let type = types[0]
-          let r = type.validate(s, c.concat({ key: String(0), type }))
+          let r = type.validate(s, appendContext(c, String(0), type))
           for (let i = 1; i < types.length; i++) {
             type = types[i]
-            r = M.attempt(r, () => type.validate(s, c.concat({ key: String(i), type })))
+            r = M.attempt(r, () => type.validate(s, appendContext(c, String(i), type)))
           }
           return r
         } else {
@@ -596,7 +610,7 @@ export interface DictionaryCombinator<M> {
 export const getDictionary = <M>(M: MonadType<M>) => (
   anyDictionaryType: AnyDictionaryType<M>
 ): DictionaryCombinator<M> => {
-  const f = M.zipWith((a: { [key: string]: any }, b: { k: string; v: any }) => ({ ...a, [b.k]: b.v }))
+  const f = M.zipWith((a: { [key: string]: any }, b: [string, any]) => ({ ...a, [b[0]]: b[1] }))
   return (domain, codomain, name = `{ [K in ${domain.name}]: ${codomain.name} }`) =>
     new DictionaryType(
       name,
@@ -607,8 +621,8 @@ export const getDictionary = <M>(M: MonadType<M>) => (
           for (let k in o) {
             r = f(r, () =>
               M.chain(
-                kk => M.map(v => ({ k: kk, v }), codomain.validate(o[k], c.concat({ key: k, type: codomain }))),
-                domain.validate(k, c.concat({ key: k, type: domain }))
+                kk => M.map(v => [kk, v] as [string, any], codomain.validate(o[k], appendContext(c, k, codomain))),
+                domain.validate(k, appendContext(c, k, domain))
               )
             )
           }
@@ -752,12 +766,12 @@ export const getTuple = <M>(M: MonadType<M>) => (
       (s, c) =>
         M.chain(as => {
           if (as.length > len) {
-            return M.throwError([{ value: as[len], context: c.concat({ key: String(len), type: never }) }])
+            return M.throwError([{ value: as[len], context: appendContext(c, String(len), never) }])
           } else {
             let r = M.of<Array<any>>([])
             for (let i = 0; i < len; i++) {
               const type = types[i]
-              r = f(r, () => type.validate(as[i], c.concat({ key: String(i), type })))
+              r = f(r, () => type.validate(as[i], appendContext(c, String(i), type)))
             }
             return r
           }
@@ -893,7 +907,7 @@ export const getStrict = <M>(M: MonadType<M>) => (
                 r,
                 () =>
                   !props.hasOwnProperty(key)
-                    ? M.throwError([{ value: o[key], context: c.concat({ key, type: never }) }])
+                    ? M.throwError([{ value: o[key], context: appendContext(c, key, never) }])
                     : r
               )
             }

@@ -1,11 +1,15 @@
 import { HKT } from 'fp-ts/lib/HKT'
 import { URI, Either, left, right, map, of, ap, chain } from 'fp-ts/lib/Either'
-import { MonadType, Type, ValidationError } from './core'
+import { MonadType, Type, Errors, createContext } from './core'
 
-export type Validation<A> = Either<Array<ValidationError>, A>
+export type Validation<A> = Either<Errors, A>
 
-export const zipEither = <A, B, C>(f: (a: A, b: B) => C, fa: Validation<A>, fb: Validation<B>): Validation<C> =>
-  fa.fold(la => fb.fold(lb => left(la.concat(lb)), () => left(la)), a => fb.fold(lb => left(lb), b => right(f(a, b))))
+export function zipEither<A, B, C>(f: (a: A, b: B) => C, fa: Validation<A>, fb: Validation<B>): Validation<C> {
+  return fa.fold(
+    la => fb.fold(lb => left(la.concat(lb)), () => left(la)),
+    a => fb.fold(lb => left(lb), b => right(f(a, b)))
+  )
+}
 
 /** Synchronous validation, all errors */
 export const monadTypeEitherAll: MonadType<URI> = {
@@ -47,5 +51,6 @@ export const monadTypeEitherFirst: MonadType<URI> = {
   }
 }
 
-export const validate = <A>(value: any, type: Type<URI, any, A>): Validation<A> =>
-  type.validate(value, [{ key: '', type }]) as any
+export function validate<A>(value: any, type: Type<URI, any, A>): Validation<A> {
+  return type.validate(value, createContext('', type)) as any
+}

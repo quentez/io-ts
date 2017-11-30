@@ -1,7 +1,7 @@
 import * as assert from 'assert'
 import { Either } from 'funfix-core'
 import { HKT } from 'fp-ts/lib/HKT'
-import { ValidationError, MonadType, getTypeSystem, Type } from '../../../src/core'
+import { Errors, MonadType, getTypeSystem, Type, createContext } from '../../../src/core'
 import { failure, success } from '../../../src/report'
 
 const { right, left } = Either
@@ -47,7 +47,7 @@ export const either: Monad<URI> = {
 // MonadType instance
 //
 
-type Validation<A> = Either<Array<ValidationError>, A>
+type Validation<A> = Either<Errors, A>
 
 const zipEither = <A, B, C>(f: (a: A, b: B) => C, fa: Validation<A>, fb: Validation<B>): Validation<C> =>
   fa.fold(la => fb.fold(lb => left(la.concat(lb)), () => left(la)), a => fb.fold(lb => left(lb), b => right(f(a, b))))
@@ -76,8 +76,8 @@ const monadTypeEitherAll: MonadType<URI> = {
 //
 const t = getTypeSystem(monadTypeEitherAll)
 
-const validate = <A>(value: any, type: Type<URI, any, A>): Either<Array<ValidationError>, A> =>
-  type.validate(value, [{ key: '', type }]) as any
+const validate = <A>(value: any, type: Type<URI, any, A>): Either<Errors, A> =>
+  type.validate(value, createContext('', type)) as any
 
 //
 // test helpers
@@ -92,7 +92,7 @@ function assertFailure<A>(validation: Validation<A>, descriptions: Array<string>
   assert.deepEqual(report(validation), descriptions)
 }
 
-export const report = (validation: Either<Array<ValidationError>, any>): Array<string> => {
+export const report = (validation: Either<Errors, any>): Array<string> => {
   return validation.fold(failure, success)
 }
 

@@ -2,10 +2,10 @@ import { HKT } from 'fp-ts/lib/HKT'
 import { Either, left, right } from 'fp-ts/lib/Either'
 import { Task } from 'fp-ts/lib/Task'
 import { TaskEither, URI, map, of, ap, chain, fromEither } from 'fp-ts/lib/TaskEither'
-import { MonadType, Type, ValidationError } from './core'
+import { MonadType, Type, Errors, createContext } from './core'
 import { zipEither } from './either'
 
-export type Validation<A> = TaskEither<Array<ValidationError>, A>
+export type Validation<A> = TaskEither<Errors, A>
 
 /** Asynchronous validation, all errors */
 export const monadTypeTaskEitherAll: MonadType<URI> = {
@@ -32,7 +32,7 @@ export const monadTypeTaskEitherAll: MonadType<URI> = {
             lx =>
               lazyfy_()
                 .run()
-                .then(ey => ey.fold<Either<Array<ValidationError>, A>>(ly => left(lx.concat(ly)), a => right(a))),
+                .then(ey => ey.fold<Either<Errors, A>>(ly => left(lx.concat(ly)), a => right(a))),
             () => Promise.resolve(ex)
           )
         )
@@ -57,5 +57,6 @@ export const monadTypeTaskEitherFirst: MonadType<URI> = {
   attempt: monadTypeTaskEitherAll.attempt
 }
 
-export const validate = <A>(value: any, type: Type<URI, any, A>): Validation<A> =>
-  type.validate(value, [{ key: '', type }]) as any
+export function validate<A>(value: any, type: Type<URI, any, A>): Validation<A> {
+  return type.validate(value, createContext('', type)) as any
+}
