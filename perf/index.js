@@ -9,12 +9,15 @@ const T = t.type({
   c: t.array(t.boolean),
   d: t.tuple([t.number, t.string])
 })
-const payload = { c: [1], d: ['foo'] }
-// const payload = {}
+const payloadKO = { c: [1], d: ['foo'] }
+const payloadOK = { a: 'a', b: 1, c: [true], d: [1, 'foo'] }
 
 suite
-  .add('io-ts', function() {
-    t.validate(payload, T)
+  .add('invalid payload', function() {
+    t.validate(payloadKO, T)
+  })
+  .add('valid payload (no errors)', function() {
+    t.validate(payloadOK, T)
   })
   .on('cycle', function(event) {
     console.log(String(event.target))
