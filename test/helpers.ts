@@ -1,5 +1,5 @@
 import * as assert from 'assert'
-import { URI, isRight, isLeft, either } from 'fp-ts/lib/Either'
+import { isRight, isLeft, either } from 'fp-ts/lib/Either'
 import * as t from '../src'
 import { report } from '../src/report'
 
@@ -20,7 +20,7 @@ export function assertDeepEqual<A>(validation: t.Validation<A>, value: any): voi
   assert.deepEqual(validation.fold<any>(t.identity, t.identity), value)
 }
 
-export const string2 = new t.Type<URI, any, string>(
+export const string2 = new t.Type<any, string>(
   'string2',
   (v): v is string => t.string.is(v) && v[1] === '-',
   (s, c) =>
@@ -34,7 +34,7 @@ export const string2 = new t.Type<URI, any, string>(
   a => a[0] + a[2]
 )
 
-export const DateFromNumber = new t.Type<URI, any, Date>(
+export const DateFromNumber = new t.Type<any, Date>(
   'DateFromNumber',
   (v): v is Date => v instanceof Date,
   (s, c) =>
@@ -45,7 +45,7 @@ export const DateFromNumber = new t.Type<URI, any, Date>(
   a => a.getTime()
 )
 
-export const NumberFromString = new t.Type<URI, string, number>(
+export const NumberFromString = new t.Type<string, number>(
   'NumberFromString',
   t.number.is,
   (s, c) => {

@@ -156,7 +156,7 @@ type TS1 = TypeOf<typeof S1>
 const x32: TS1 = { name: 'Giulio' }
 const x33input = { name: 'foo', foo: 'foo' }
 const x33: TS1 = x33input
-// $ExpectError Index signature is missing in type 'StringType<"Either">'
+// $ExpectError Index signature is missing in type 'StringType'
 const S2 = t.strict(t.string)
 
 //
@@ -167,3 +167,114 @@ type TO1 = TypeOf<typeof O1>
 const x34: TO1 = { name: 'Giulio' }
 // $ExpectError Type '"foo"' is not assignable to type 'object'
 const x35: TO1 = 'foo'
+
+type GenerableProps = { [key: string]: Generable }
+type GenerableInterface = t.InterfaceType<GenerableProps, any>
+type GenerableStrict = t.StrictType<GenerableProps, any>
+type GenerablePartials = t.PartialType<GenerableProps, any>
+interface GenerableDictionary extends t.DictionaryType<Generable, Generable, any> {}
+interface GenerableRefinement extends t.RefinementType<Generable, any, any> {}
+interface GenerableArray extends t.ArrayType<Generable, any> {}
+interface GenerableUnion extends t.UnionType<Array<Generable>, any> {}
+interface GenerableIntersection extends t.IntersectionType<Array<Generable>, any> {}
+interface GenerableTuple extends t.TupleType<Array<Generable>, any> {}
+interface GenerableReadonly extends t.ReadonlyType<Generable, any> {}
+interface GenerableReadonlyArray extends t.ReadonlyArrayType<Generable, any> {}
+interface GenerableRecursive extends t.RecursiveType<Generable, any> {}
+type Generable =
+  | t.StringType
+  | t.NumberType
+  | t.BooleanType
+  | GenerableInterface
+  | GenerableRefinement
+  | GenerableArray
+  | GenerableStrict
+  | GenerablePartials
+  | GenerableDictionary
+  | GenerableUnion
+  | GenerableIntersection
+  | GenerableTuple
+  | GenerableReadonly
+  | GenerableReadonlyArray
+  | t.LiteralType<any>
+  | t.KeyofType<any>
+  | GenerableRecursive
+  | t.UndefinedType
+
+function f(generable: Generable): string {
+  switch (generable._tag) {
+    case 'InterfaceType':
+      return Object.keys(generable.props)
+        .map(k => f(generable.props[k]))
+        .join('/')
+    case 'StringType':
+      return 'StringType'
+    case 'NumberType':
+      return 'StringType'
+    case 'BooleanType':
+      return 'BooleanType'
+    case 'RefinementType':
+      return f(generable.type)
+    case 'ArrayType':
+      return 'ArrayType'
+    case 'StrictType':
+      return 'StrictType'
+    case 'PartialType':
+      return 'PartialType'
+    case 'DictionaryType':
+      return 'DictionaryType'
+    case 'UnionType':
+      return 'UnionType'
+    case 'IntersectionType':
+      return 'IntersectionType'
+    case 'TupleType':
+      return generable.types.map(type => f(type)).join('/')
+    case 'ReadonlyType':
+      return 'ReadonlyType'
+    case 'ReadonlyArrayType':
+      return 'ReadonlyArrayType'
+    case 'LiteralType':
+      return 'LiteralType'
+    case 'KeyofType':
+      return 'KeyofType'
+    case 'RecursiveType':
+      return f(generable.type)
+    case 'UndefinedType':
+      return 'UndefinedType'
+  }
+}
+
+const schema = t.interface({
+  a: t.string,
+  b: t.union([
+    t.partial({
+      c: t.string,
+      d: t.literal('eee')
+    }),
+    t.boolean
+  ]),
+  e: t.intersection([
+    t.interface({
+      f: t.array(t.string)
+    }),
+    t.interface({
+      g: t.union([t.literal('toto'), t.literal('tata')])
+    })
+  ])
+})
+
+f(schema) // OK!
+
+type Rec = {
+  a: number
+  b: Rec | undefined
+}
+
+const Rec = t.recursion<Rec, Generable>('T', self =>
+  t.interface({
+    a: t.number,
+    b: t.union([self, t.undefined])
+  })
+)
+
+f(Rec) // OK!

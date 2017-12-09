@@ -4,10 +4,10 @@ import { Predicate } from 'fp-ts/lib/function'
 
 export interface ContextEntry {
   readonly key: string
-  readonly type: any
+  readonly type: Any<any>
 }
 
-export type Context = Array<ContextEntry>
+export interface Context extends Array<ContextEntry> {}
 
 export const createContext = (key: string, type: any): Context => {
   return [{ key, type }]
@@ -26,7 +26,7 @@ export interface ValidationError {
   readonly context: Context
 }
 
-export type Errors = Array<ValidationError>
+export interface Errors extends Array<ValidationError> {}
 
 export interface MonadThrow<E, M> extends Monad<M> {
   throwError: <A>(e: E) => HKT<M, A>
@@ -37,9 +37,15 @@ export interface MonadType<M> extends MonadThrow<Errors, M> {
   attempt: <A>(fx: HKT<M, A>, lazyfy: () => HKT<M, A>) => HKT<M, A>
 }
 
-export type Is<A> = (v: any) => v is A
-export type Validate<M, S, A> = (s: S, context: Context) => HKT<M, A>
-export type Serialize<S, A> = (a: A) => S
+export interface Is<A> {
+  (v: any): v is A
+}
+export interface Validate<M, S, A> {
+  (s: S, context: Context): HKT<M, A>
+}
+export interface Serialize<S, A> {
+  (a: A): S
+}
 
 /**
  * Laws:
@@ -65,11 +71,11 @@ export const identity = <A>(a: A): A => a
 
 export const getFunctionName = (f: any): string => f.displayName || f.name || `<function${f.length}>`
 
-export type Any = Type<any, any, any>
+export interface Any<M> extends Type<M, any, any> {}
 
-export type InputOf<RT extends Any> = RT['_S']
+export type InputOf<RT extends Any<any>> = RT['_S']
 
-export type TypeOf<RT extends Any> = RT['_A']
+export type TypeOf<RT extends Any<any>> = RT['_A']
 
 //
 // basic types
@@ -226,13 +232,13 @@ export const getAnyDictionaryType = <M>(M: MonadType<M>): AnyDictionaryType<M> =
 // refinements
 //
 
-export class RefinementType<M, RT extends Any> extends Type<M, InputOf<RT>, TypeOf<RT>> {
+export class RefinementType<M, RT extends Any<M>, S, A> extends Type<M, S, A> {
   readonly _tag: 'RefinementType' = 'RefinementType'
   constructor(
     name: string,
-    is: RefinementType<M, RT>['is'],
-    validate: RefinementType<M, RT>['validate'],
-    serialize: RefinementType<M, RT>['serialize'],
+    is: RefinementType<M, RT, S, A>['is'],
+    validate: RefinementType<M, RT, S, A>['validate'],
+    serialize: RefinementType<M, RT, S, A>['serialize'],
     readonly type: RT,
     readonly predicate: Predicate<TypeOf<RT>>
   ) {
@@ -241,7 +247,12 @@ export class RefinementType<M, RT extends Any> extends Type<M, InputOf<RT>, Type
 }
 
 export interface RefinementCombinator<M> {
-  <RT extends Any>(type: RT, predicate: Predicate<TypeOf<RT>>, name?: string): RefinementType<M, RT>
+  <RT extends Any<M>>(type: RT, predicate: Predicate<TypeOf<RT>>, name?: string): RefinementType<
+    M,
+    RT,
+    InputOf<RT>,
+    TypeOf<RT>
+  >
 }
 
 export const getRefinement = <M>(M: MonadType<M>): RefinementCombinator<M> => {
@@ -328,22 +339,32 @@ export const getKeyof = <M>(M: MonadType<M>) => (string: StringType<M>): KeyofCo
 // recursive types
 //
 
-export class RecursiveType<M, A> extends Type<M, any, A> {
+export class RecursiveType<M, RT extends Any<M>, A> extends Type<M, any, A> {
   readonly _tag: 'RecursiveType' = 'RecursiveType'
   // prettier-ignore
-  readonly 'type': Any
-  constructor(name: string, is: Is<A>, validate: Validate<M, any, A>, serialize: Serialize<any, A>) {
+  readonly 'type': RT
+  constructor(
+    name: string,
+    is: RecursiveType<M, RT, A>['is'],
+    validate: RecursiveType<M, RT, A>['validate'],
+    serialize: RecursiveType<M, RT, A>['serialize']
+  ) {
     super(name, is, validate, serialize)
   }
 }
 
 export interface RecursionCombinator<M> {
-  <A>(name: string, definition: (self: Any) => Any): RecursiveType<M, A>
+  <A, RT extends Any<M> = Any<M>>(name: string, definition: (self: RT) => RT): RecursiveType<M, RT, A>
 }
 
 export const getRecursion = <M>(M: MonadType<M>): RecursionCombinator<M> => {
-  return (name, definition) => {
-    const Self: any = new RecursiveType(name, (v): v is any => type.is(v), (s, c) => type.validate(s, c), identity)
+  return <A, RT extends Any<M> = Any<M>>(name: string, definition: (self: RT) => RT) => {
+    const Self: any = new RecursiveType<M, RT, A>(
+      name,
+      (v): v is A => type.is(v),
+      (s, c) => type.validate(s, c),
+      identity
+    )
     const type = definition(Self)
     Self.type = type
     Self.serialize = type.serialize
@@ -355,13 +376,13 @@ export const getRecursion = <M>(M: MonadType<M>): RecursionCombinator<M> => {
 // arrays
 //
 
-export class ArrayType<M, RT extends Type<M, any, any>> extends Type<M, any, Array<TypeOf<RT>>> {
+export class ArrayType<M, RT extends Any<M>, A> extends Type<M, any, A> {
   readonly _tag: 'ArrayType' = 'ArrayType'
   constructor(
     name: string,
-    is: ArrayType<M, RT>['is'],
-    validate: ArrayType<M, RT>['validate'],
-    serialize: ArrayType<M, RT>['serialize'],
+    is: ArrayType<M, RT, A>['is'],
+    validate: ArrayType<M, RT, A>['validate'],
+    serialize: ArrayType<M, RT, A>['serialize'],
     readonly type: RT
   ) {
     super(name, is, validate, serialize)
@@ -369,7 +390,7 @@ export class ArrayType<M, RT extends Type<M, any, any>> extends Type<M, any, Arr
 }
 
 export interface ArrayCombinator<M> {
-  <RT extends Type<M, any, any>>(type: RT, name?: string): ArrayType<M, RT>
+  <RT extends Any<M>>(type: RT, name?: string): ArrayType<M, RT, Array<TypeOf<RT>>>
 }
 
 export const getArray = <M>(M: MonadType<M>) => (anyArrayType: Type<M, any, Array<any>>): ArrayCombinator<M> => {
@@ -395,17 +416,19 @@ export const getArray = <M>(M: MonadType<M>) => (anyArrayType: Type<M, any, Arra
 // interfaces
 //
 
-export type Props<M> = { [key: string]: Type<M, any, any> }
+export interface Props<M> {
+  [key: string]: Any<M>
+}
 
 export type InterfaceOf<P extends Props<any>> = { [K in keyof P]: TypeOf<P[K]> }
 
-export class InterfaceType<M, P extends Props<M>> extends Type<M, any, InterfaceOf<P>> {
+export class InterfaceType<M, P extends Props<M>, A> extends Type<M, any, A> {
   readonly _tag: 'InterfaceType' = 'InterfaceType'
   constructor(
     name: string,
-    is: InterfaceType<M, P>['is'],
-    validate: InterfaceType<M, P>['validate'],
-    serialize: InterfaceType<M, P>['serialize'],
+    is: InterfaceType<M, P, A>['is'],
+    validate: InterfaceType<M, P, A>['validate'],
+    serialize: InterfaceType<M, P, A>['serialize'],
     readonly props: P
   ) {
     super(name, is, validate, serialize)
@@ -427,7 +450,7 @@ const useIdentity = (props: Props<any>): boolean => {
 }
 
 export interface InterfaceCombinator<M> {
-  <P extends Props<M>>(props: P, name?: string): InterfaceType<M, P>
+  <P extends Props<M>>(props: P, name?: string): InterfaceType<M, P, InterfaceOf<P>>
 }
 
 export const getInterface = <M>(M: MonadType<M>) => (
@@ -494,7 +517,7 @@ declare global {
 }
 
 export interface UnionCombinator<M> {
-  <RTS extends Array<Type<M, any, any>>>(types: RTS, name?: string): UnionType<M, RTS, TypeOf<RTS['_A']>>
+  <RTS extends Array<Any<M>>>(types: RTS, name?: string): UnionType<M, RTS, TypeOf<RTS['_A']>>
 }
 
 export const getUnion = <M>(M: MonadType<M>): UnionCombinator<M> => {
@@ -536,13 +559,13 @@ export const getUnion = <M>(M: MonadType<M>): UnionCombinator<M> => {
 
 export type PartialOf<P extends Props<any>> = { [K in keyof P]?: TypeOf<P[K]> }
 
-export class PartialType<M, P extends Props<M>> extends Type<M, any, PartialOf<P>> {
+export class PartialType<M, P extends Props<M>, A> extends Type<M, any, A> {
   readonly _tag: 'PartialType' = 'PartialType'
   constructor(
     name: string,
-    is: PartialType<M, P>['is'],
-    validate: PartialType<M, P>['validate'],
-    serialize: PartialType<M, P>['serialize'],
+    is: PartialType<M, P, A>['is'],
+    validate: PartialType<M, P, A>['validate'],
+    serialize: PartialType<M, P, A>['serialize'],
     readonly props: P
   ) {
     super(name, is, validate, serialize)
@@ -550,13 +573,13 @@ export class PartialType<M, P extends Props<M>> extends Type<M, any, PartialOf<P
 }
 
 export interface PartialCombinator<M> {
-  <P extends Props<M>>(props: P, name?: string): PartialType<M, P>
+  <P extends Props<M>>(props: P, name?: string): PartialType<M, P, PartialOf<P>>
 }
 
 export const getPartial = <M>(M: MonadType<M>) => (
-  union: <RTS extends Array<Any>>(types: RTS, name?: string) => UnionType<M, RTS, TypeOf<RTS['_A']>>,
+  union: <RTS extends Array<Any<M>>>(types: RTS, name?: string) => UnionType<M, RTS, TypeOf<RTS['_A']>>,
   undefinedType: UndefinedType<M>,
-  type: <P extends Props<M>>(props: P, name?: string) => InterfaceType<M, P>
+  type: InterfaceCombinator<M>
 ): PartialCombinator<M> => {
   return (props, name = `PartialType<${getNameFromProps(props)}>`) => {
     const partials: Props<M> = {}
@@ -589,13 +612,13 @@ export const getPartial = <M>(M: MonadType<M>) => (
 // dictionaries
 //
 
-export class DictionaryType<M, D extends Any, C extends Any> extends Type<M, any, { [K in TypeOf<D>]: TypeOf<C> }> {
+export class DictionaryType<M, D extends Any<M>, C extends Any<M>, A> extends Type<M, any, A> {
   readonly _tag: 'DictionaryType' = 'DictionaryType'
   constructor(
     name: string,
-    is: DictionaryType<M, D, C>['is'],
-    validate: DictionaryType<M, D, C>['validate'],
-    serialize: DictionaryType<M, D, C>['serialize'],
+    is: DictionaryType<M, D, C, A>['is'],
+    validate: DictionaryType<M, D, C, A>['validate'],
+    serialize: DictionaryType<M, D, C, A>['serialize'],
     readonly domain: D,
     readonly codomain: C
   ) {
@@ -604,7 +627,12 @@ export class DictionaryType<M, D extends Any, C extends Any> extends Type<M, any
 }
 
 export interface DictionaryCombinator<M> {
-  <D extends Any, C extends Any>(domain: D, codomain: C, name?: string): DictionaryType<M, D, C>
+  <D extends Any<M>, C extends Any<M>>(domain: D, codomain: C, name?: string): DictionaryType<
+    M,
+    D,
+    C,
+    { [K in TypeOf<D>]: TypeOf<C> }
+  >
 }
 
 export const getDictionary = <M>(M: MonadType<M>) => (
@@ -660,26 +688,25 @@ export class IntersectionType<M, RTS, A> extends Type<M, any, A> {
 }
 
 export interface IntersectionCombinator<M> {
-  <A extends Any, B extends Any, C extends Any, D extends Any, E extends Any>(
+  <A extends Any<M>, B extends Any<M>, C extends Any<M>, D extends Any<M>, E extends Any<M>>(
     types: [A, B, C, D, E],
     name?: string
   ): IntersectionType<M, [A, B, C, D, E], TypeOf<A> & TypeOf<B> & TypeOf<C> & TypeOf<D> & TypeOf<E>>
-  <A extends Any, B extends Any, C extends Any, D extends Any>(types: [A, B, C, D], name?: string): IntersectionType<
-    M,
-    [A, B, C, D],
-    TypeOf<A> & TypeOf<B> & TypeOf<C> & TypeOf<D>
-  >
-  <A extends Any, B extends Any, C extends Any>(types: [A, B, C], name?: string): IntersectionType<
+  <A extends Any<M>, B extends Any<M>, C extends Any<M>, D extends Any<M>>(
+    types: [A, B, C, D],
+    name?: string
+  ): IntersectionType<M, [A, B, C, D], TypeOf<A> & TypeOf<B> & TypeOf<C> & TypeOf<D>>
+  <A extends Any<M>, B extends Any<M>, C extends Any<M>>(types: [A, B, C], name?: string): IntersectionType<
     M,
     [A, B, C],
     TypeOf<A> & TypeOf<B> & TypeOf<C>
   >
-  <A extends Any, B extends Any>(types: [A, B], name?: string): IntersectionType<M, [A, B], TypeOf<A> & TypeOf<B>>
-  <A extends Any>(types: [A], name?: string): IntersectionType<M, [A], TypeOf<A>>
+  <A extends Any<M>, B extends Any<M>>(types: [A, B], name?: string): IntersectionType<M, [A, B], TypeOf<A> & TypeOf<B>>
+  <A extends Any<M>>(types: [A], name?: string): IntersectionType<M, [A], TypeOf<A>>
 }
 
 export const getIntersection = <M>(M: MonadType<M>): IntersectionCombinator<M> => {
-  return <RTS extends Array<Any>>(
+  return <RTS extends Array<Any<M>>>(
     types: RTS,
     name: string = `(${types.map(type => type.name).join(' & ')})`
   ): IntersectionType<M, RTS, any> => {
@@ -732,29 +759,28 @@ export class TupleType<M, RTS, A> extends Type<M, any, A> {
 }
 
 export interface TupleCombinator<M> {
-  <A extends Any, B extends Any, C extends Any, D extends Any, E extends Any>(
+  <A extends Any<M>, B extends Any<M>, C extends Any<M>, D extends Any<M>, E extends Any<M>>(
     types: [A, B, C, D, E],
     name?: string
   ): TupleType<M, [A, B, C, D, E], [TypeOf<A>, TypeOf<B>, TypeOf<C>, TypeOf<D>, TypeOf<E>]>
-  <A extends Any, B extends Any, C extends Any, D extends Any>(types: [A, B, C, D], name?: string): TupleType<
-    M,
-    [A, B, C, D],
-    [TypeOf<A>, TypeOf<B>, TypeOf<C>, TypeOf<D>]
-  >
-  <A extends Any, B extends Any, C extends Any>(types: [A, B, C], name?: string): TupleType<
+  <A extends Any<M>, B extends Any<M>, C extends Any<M>, D extends Any<M>>(
+    types: [A, B, C, D],
+    name?: string
+  ): TupleType<M, [A, B, C, D], [TypeOf<A>, TypeOf<B>, TypeOf<C>, TypeOf<D>]>
+  <A extends Any<M>, B extends Any<M>, C extends Any<M>>(types: [A, B, C], name?: string): TupleType<
     M,
     [A, B, C],
     [TypeOf<A>, TypeOf<B>, TypeOf<C>]
   >
-  <A extends Any, B extends Any>(types: [A, B], name?: string): TupleType<M, [A, B], [TypeOf<A>, TypeOf<B>]>
-  <A extends Any>(types: [A], name?: string): TupleType<M, [A], [TypeOf<A>]>
+  <A extends Any<M>, B extends Any<M>>(types: [A, B], name?: string): TupleType<M, [A, B], [TypeOf<A>, TypeOf<B>]>
+  <A extends Any<M>>(types: [A], name?: string): TupleType<M, [A], [TypeOf<A>]>
 }
 
 export const getTuple = <M>(M: MonadType<M>) => (
   anyArrayType: AnyArrayType<M>,
   never: NeverType<M>
 ): TupleCombinator<M> => {
-  return <RTS extends Array<Any>>(
+  return <RTS extends Array<Any<M>>>(
     types: RTS,
     name: string = `[${types.map(type => type.name).join(', ')}]`
   ): TupleType<M, RTS, any> => {
@@ -788,13 +814,13 @@ export const getTuple = <M>(M: MonadType<M>) => (
 // readonly objects
 //
 
-export class ReadonlyType<M, RT extends Any> extends Type<M, any, Readonly<TypeOf<RT>>> {
+export class ReadonlyType<M, RT extends Any<M>, A> extends Type<M, any, A> {
   readonly _tag: 'ReadonlyType' = 'ReadonlyType'
   constructor(
     name: string,
-    is: ReadonlyType<M, RT>['is'],
-    validate: ReadonlyType<M, RT>['validate'],
-    serialize: ReadonlyType<M, RT>['serialize'],
+    is: ReadonlyType<M, RT, A>['is'],
+    validate: ReadonlyType<M, RT, A>['validate'],
+    serialize: ReadonlyType<M, RT, A>['serialize'],
     readonly type: RT
   ) {
     super(name, is, validate, serialize)
@@ -802,7 +828,7 @@ export class ReadonlyType<M, RT extends Any> extends Type<M, any, Readonly<TypeO
 }
 
 export interface ReadonlyCombinator<M> {
-  <RT extends Any>(type: RT, name?: string): ReadonlyType<M, RT>
+  <RT extends Any<M>>(type: RT, name?: string): ReadonlyType<M, RT, Readonly<TypeOf<RT>>>
 }
 
 export const getReadonly = <M>(M: MonadType<M>): ReadonlyCombinator<M> => {
@@ -827,13 +853,13 @@ export const getReadonly = <M>(M: MonadType<M>): ReadonlyCombinator<M> => {
 // readonly arrays
 //
 
-export class ReadonlyArrayType<M, RT extends Any> extends Type<M, any, ReadonlyArray<TypeOf<RT>>> {
+export class ReadonlyArrayType<M, RT extends Any<M>, A> extends Type<M, any, A> {
   readonly _tag: 'ReadonlyArrayType' = 'ReadonlyArrayType'
   constructor(
     name: string,
-    is: ReadonlyArrayType<M, RT>['is'],
-    validate: ReadonlyArrayType<M, RT>['validate'],
-    serialize: ReadonlyArrayType<M, RT>['serialize'],
+    is: ReadonlyArrayType<M, RT, A>['is'],
+    validate: ReadonlyArrayType<M, RT, A>['validate'],
+    serialize: ReadonlyArrayType<M, RT, A>['serialize'],
     readonly type: RT
   ) {
     super(name, is, validate, serialize)
@@ -841,7 +867,7 @@ export class ReadonlyArrayType<M, RT extends Any> extends Type<M, any, ReadonlyA
 }
 
 export interface ReadonlyArrayCombinator<M> {
-  <RT extends Any>(type: RT, name?: string): ReadonlyArrayType<M, RT>
+  <RT extends Any<M>>(type: RT, name?: string): ReadonlyArrayType<M, RT, ReadonlyArray<TypeOf<RT>>>
 }
 
 export const getReadonlyArray = <M>(M: MonadType<M>) => (array: ArrayCombinator<M>): ReadonlyArrayCombinator<M> => {
@@ -868,13 +894,13 @@ export const getReadonlyArray = <M>(M: MonadType<M>) => (array: ArrayCombinator<
 // strict interfaces
 //
 
-export class StrictType<M, P extends Props<M>> extends Type<M, any, InterfaceOf<P>> {
+export class StrictType<M, P extends Props<M>, A> extends Type<M, any, A> {
   readonly _tag: 'StrictType' = 'StrictType'
   constructor(
     name: string,
-    is: StrictType<M, P>['is'],
-    validate: StrictType<M, P>['validate'],
-    serialize: StrictType<M, P>['serialize'],
+    is: StrictType<M, P, A>['is'],
+    validate: StrictType<M, P, A>['validate'],
+    serialize: StrictType<M, P, A>['serialize'],
     readonly props: P
   ) {
     super(name, is, validate, serialize)
@@ -882,7 +908,7 @@ export class StrictType<M, P extends Props<M>> extends Type<M, any, InterfaceOf<
 }
 
 export interface StrictCombinator<M> {
-  <P extends Props<M>>(props: P, name?: string): StrictType<M, P>
+  <P extends Props<M>>(props: P, name?: string): StrictType<M, P, InterfaceOf<P>>
 }
 
 export const getStrict = <M>(M: MonadType<M>) => (
@@ -935,7 +961,7 @@ export interface TypeSystem<M> {
   Array: AnyArrayType<M>
   Dictionary: AnyDictionaryType<M>
   refinement: RefinementCombinator<M>
-  Integer: RefinementType<M, NumberType<M>>
+  Integer: RefinementType<M, NumberType<M>, any, number>
   literal: LiteralCombinator<M>
   keyof: KeyofCombinator<M>
   recursion: RecursionCombinator<M>
