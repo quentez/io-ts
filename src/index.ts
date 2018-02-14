@@ -500,10 +500,7 @@ export const type = <P extends Props>(
           const ok = o[k]
           const type = props[k]
           const validation = type.validate(ok, appendContext(c, k, type))
-          validation.fold(
-            e => pushAll(errors, e),
-            vok => a[k] = vok
-          )
+          validation.fold(e => pushAll(errors, e), vok => (a[k] = vok))
         }
         return errors.length ? failures(errors) : success(a as any)
       }),
