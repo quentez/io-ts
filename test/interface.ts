@@ -8,11 +8,11 @@ describe('interface', () => {
     assertSuccess(T.decode({ a: 's' }))
   })
 
-  it('should keep unknown properties', () => {
+  it('should drop unknown properties', () => {
     const T = t.interface({ a: t.string })
     const validation = T.decode({ a: 's', b: 1 })
     if (validation.isRight()) {
-      assert.deepEqual(validation.value, { a: 's', b: 1 })
+      assert.deepEqual(validation.value, { a: 's' })
     } else {
       assert.ok(false)
     }

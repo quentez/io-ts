@@ -494,7 +494,7 @@ export const type = <P extends Props>(
     },
     (m, c) =>
       Dictionary.validate(m, c).chain(o => {
-        let a = o
+        let a: { [key: string]: any } = {}
         const errors: Errors = []
         for (let k in props) {
           const ok = o[k]
@@ -502,14 +502,7 @@ export const type = <P extends Props>(
           const validation = type.validate(ok, appendContext(c, k, type))
           validation.fold(
             e => pushAll(errors, e),
-            vok => {
-              if (vok !== ok) {
-                if (a === o) {
-                  a = { ...o }
-                }
-                a[k] = vok
-              }
-            }
+            vok => a[k] = vok
           )
         }
         return errors.length ? failures(errors) : success(a as any)
